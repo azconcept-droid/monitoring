@@ -81,6 +81,7 @@ We have 5 files in our `fluentd-configmap.yaml` :
 * file-fluent.conf: `match` config to capture all logs and write it to file for testing log collection </br>
   Note: This is great to test if collection of logs works
 * elastic-fluent.conf: `match` config that captures all logs and sends it to `elasticseach`
+* loki-fluent.conf: `match` config that captures all logs and sends it to `grafana-loki`
 
 Let's deploy our `configmap`:
 
