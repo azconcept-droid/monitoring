@@ -33,7 +33,7 @@ RUN buildDeps="sudo make gcc g++ libc-dev libffi-dev" \
     && rm -rf /tmp/* /var/tmp/* /usr/lib/ruby/gems/*/cache/*.gem
 
 RUN touch /fluentd/etc/disable.conf
-RUN gem install fluent-plugin-grafana-loki -v 5.0.1
+RUN gem install fluent-plugin-grafana-loki -v 1.2.18
 # Copy plugins
 COPY plugins /fluentd/plugins/
 COPY entrypoint.sh /fluentd/entrypoint.sh
