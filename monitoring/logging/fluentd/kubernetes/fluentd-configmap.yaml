@@ -41,6 +41,15 @@ data:
       skip_master_url "#{ENV['FLUENT_KUBERNETES_METADATA_SKIP_MASTER_URL'] || 'false'}"
       skip_namespace_metadata "#{ENV['FLUENT_KUBERNETES_METADATA_SKIP_NAMESPACE_METADATA'] || 'false'}"
     </filter>
+
+    # Filter: Parse and enrich logs
+    <filter kubernetes.**>
+      @type record_transformer
+      <record>
+        hostname ${hostname}
+        cluster_name "#{ENV['CLUSTER_NAME'] || 'kubernetes'}"
+      </record>
+    </filter>
   pods-fluent.conf: |-
     <source>
       @type tail
@@ -84,15 +93,34 @@ data:
   loki-fluent.conf: |-
     <match **>
       @type loki
-      url http://loki:3100
-      extra_labels {"source":"nestjs","env":"production"}
-      flush_interval 5s
-      flush_at_shutdown true
-      buffer_chunk_limit 1m
+      url "#{ENV['LOKI_URL'] || 'http://loki:3100'}"
+
+      # Extra labels for Loki
       <label>
-        app
-        type
-        level
-        container_name
+        cluster_name $.cluster_name
+        hostname $.hostname
       </label>
+
+      # Kubernetes labels
+      <label>
+        namespace $.kubernetes.namespace_name
+        pod $.kubernetes.pod_name
+        container $.kubernetes.container_name
+        app $.kubernetes.labels.app
+      </label>
+
+      # Buffer configuration
+      <buffer>
+        @type file
+        path /var/log/fluentd-buffers/loki.buffer
+        flush_mode interval
+        flush_interval 10s
+        flush_at_shutdown true
+        retry_type exponential_backoff
+        retry_max_interval 30
+        chunk_limit_size 1M
+        queue_limit_length 8
+        overflow_action block
+        buffer_chunk_limit 1m
+      </buffer>
     </match>
