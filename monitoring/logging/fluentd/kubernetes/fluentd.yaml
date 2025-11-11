@@ -20,7 +20,10 @@ spec:
       serviceAccount: fluentd
       serviceAccountName: fluentd
       tolerations:
+      # Allow Fluentd to run on master nodes
       - key: node-role.kubernetes.io/master
+        effect: NoSchedule
+      - key: node-role.kubernetes.io/control-plane
         effect: NoSchedule
       containers:
       - name: fluentd
@@ -31,9 +34,15 @@ spec:
             value: "elasticsearch.elastic-kibana"
           - name:  FLUENT_ELASTICSEARCH_PORT
             value: "9200"
+          - name: LOKI_URL
+            value: "http://loki:3100"
+          - name: CLUSTER_NAME
+            value: "kubernetes-cluster"
+          - name: FLUENTD_SYSTEMD_CONF
+            value: disable
         resources:
           limits:
-            memory: 200Mi
+            memory: 512Mi
           requests:
             cpu: 100m
             memory: 200Mi
