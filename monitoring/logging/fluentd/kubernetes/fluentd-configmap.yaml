@@ -17,16 +17,16 @@ data:
   pods-kind-fluent.conf: |-
     <source>
       @type tail
-      read_from_head true
-      tag kubernetes.*
+      @id in_tail_container_logs
       path /var/log/containers/*.log
       pos_file /var/log/fluentd-containers.log.pos
-      exclude_path ["/var/log/containers/fluent*"]
+      tag kubernetes.*
+      read_from_head true
       <parse>
-        @type regexp
-        #https://regex101.com/r/ZkOBTI/1
-        expression ^(?<time>\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.[^Z]*Z)\s(?<stream>[^\s]+)\s(?<character>[^\s])\s(?<message>.*)$
-        #time_format %Y-%m-%dT%H:%M:%S.%NZ
+        @type json
+        time_format %Y-%m-%dT%H:%M:%S.%NZ
+        time_key time
+        keep_time_key true
       </parse>
     </source>
 
@@ -36,19 +36,10 @@ data:
       kubernetes_url "#{ENV['FLUENT_FILTER_KUBERNETES_URL'] || 'https://' + ENV.fetch('KUBERNETES_SERVICE_HOST') + ':' + ENV.fetch('KUBERNETES_SERVICE_PORT') + '/api'}"
       verify_ssl "#{ENV['KUBERNETES_VERIFY_SSL'] || true}"
       ca_file "#{ENV['KUBERNETES_CA_FILE']}"
-      skip_labels "#{ENV['FLUENT_KUBERNETES_METADATA_SKIP_LABELS'] || 'false'}"
-      skip_container_metadata "#{ENV['FLUENT_KUBERNETES_METADATA_SKIP_CONTAINER_METADATA'] || 'false'}"
-      skip_master_url "#{ENV['FLUENT_KUBERNETES_METADATA_SKIP_MASTER_URL'] || 'false'}"
-      skip_namespace_metadata "#{ENV['FLUENT_KUBERNETES_METADATA_SKIP_NAMESPACE_METADATA'] || 'false'}"
-    </filter>
-
-    # Filter: Parse and enrich logs
-    <filter kubernetes.**>
-      @type record_transformer
-      <record>
-        hostname ${hostname}
-        cluster_name "#{ENV['CLUSTER_NAME'] || 'kubernetes'}"
-      </record>
+      skip_labels false
+      skip_container_metadata false
+      skip_master_url false
+      skip_namespace_metadata false
     </filter>
   pods-fluent.conf: |-
     <source>
@@ -91,36 +82,31 @@ data:
       include_timestamp true
     </match>
   loki-fluent.conf: |-
-    <match **>
+    <match kubernetes.**>
       @type loki
-      url "#{ENV['LOKI_URL'] || 'http://loki:3100'}"
-
-      # Extra labels for Loki
-      <label>
-        cluster_name $.cluster_name
-        hostname $.hostname
-      </label>
-
-      # Kubernetes labels
+      url http://loki.grafana-loki.svc.cluster.local:3100
+      flush_interval 10s
+      flush_at_shutdown true
+      
+      extra_labels {"job":"fluentd"}
+      
       <label>
         namespace $.kubernetes.namespace_name
         pod $.kubernetes.pod_name
         container $.kubernetes.container_name
-        app $.kubernetes.labels.app
+        host $.kubernetes.host
       </label>
-
-      # Buffer configuration
+      
       <buffer>
         @type file
-        path /var/log/fluentd-buffers/loki.buffer
+        path /var/log/fluentd-buffers/kubernetes.buffer
         flush_mode interval
-        flush_interval 10s
-        flush_at_shutdown true
         retry_type exponential_backoff
+        flush_interval 10s
+        retry_forever false
         retry_max_interval 30
-        chunk_limit_size 1M
+        chunk_limit_size 2M
         queue_limit_length 8
         overflow_action block
-        buffer_chunk_limit 1m
       </buffer>
     </match>
