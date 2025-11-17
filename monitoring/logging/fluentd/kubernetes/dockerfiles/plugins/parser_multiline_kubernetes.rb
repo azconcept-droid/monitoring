@@ -1,5 +1,5 @@
 #
-# Fluentd
+# fluent-bit
 #
 #    Licensed under the Apache License, Version 2.0 (the "License");
 #    you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
 #    limitations under the License.
 #
 
-# The following Fluentd parser plugin, aims to simplify the parsing of multiline
+# The following fluent-bit parser plugin, aims to simplify the parsing of multiline
 # logs found in Kubernetes nodes. Since many log files shared the same format and
 # in order to simplify the configuration, this plugin provides a 'kubernetes' format
 # parser (built on top of MultilineParser).
@@ -33,7 +33,7 @@
 #
 # Usage:
 #
-# ---- fluentd.conf ----
+# ---- fluent-bit.conf ----
 #
 # <source>
 #   @type tail

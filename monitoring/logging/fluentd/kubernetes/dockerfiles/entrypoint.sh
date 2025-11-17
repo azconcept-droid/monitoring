@@ -1,3 +1,3 @@
 #!/usr/bin/env sh
 
-exec fluentd -c /fluentd/etc/${FLUENTD_CONF} -p /fluentd/plugins
+exec fluent-bit -c /fluent-bit/etc/${fluent-bit_CONF} -p /fluent-bit/plugins
